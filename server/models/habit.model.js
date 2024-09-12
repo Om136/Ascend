@@ -27,7 +27,7 @@ const habitSchema = new mongoose.Schema({
         ref:'User',
         required:true,
     },
-    lastCOmpleted:{
+    lastCompleted:{
         type:Date,
     },
     createdAt:{
@@ -39,4 +39,4 @@ const habitSchema = new mongoose.Schema({
 }) 
 
 const Habit = mongoose.model("Habit",habitSchema);
-module.exports = Habit;
+export default Habit;
