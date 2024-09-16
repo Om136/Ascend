@@ -41,7 +41,7 @@ export const signUp = async (req, res) => {
 export const login = async (req, res) => {
   const {username,password} = req.body;
   const user = await User.findOne({username});
-  const isMatch = await bycrpt.compare(password,user.password);
+  const isMatch = bycrpt.compare(password, user?.password);
   if(!user || !isMatch){
     res.status(400).json({error:"Invalid Credentials"})
   }
