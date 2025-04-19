@@ -1,4 +1,4 @@
-import  { useState } from "react";
+import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -9,6 +9,12 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+
+    if (!username || !password) {
+      console.error("Username and password are required");
+      return;
+    }
+
     try {
       const response = await axios.post(
         "http://localhost:8000/api/auth/login",
@@ -25,6 +31,9 @@ const Login = () => {
       navigate("/dashboard");
     } catch (error) {
       console.error("Login error", error);
+      if (error.response && error.response.data) {
+        console.error("Server response:", error.response.data.error);
+      }
     }
   };
 
@@ -51,7 +60,7 @@ const Login = () => {
         />
         <button
           type="submit"
-          className="w-full bg-blue-500 text-white py-2 rounded"
+          className="w-full bg-black text-white py-2 rounded"
         >
           Login
         </button>

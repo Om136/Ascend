@@ -1,4 +1,4 @@
-import  { useState } from "react";
+import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -11,10 +11,17 @@ const Register = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("/api/users/register", { username, email, password });
+      await axios.post("http://localhost:8000/api/auth/signup", {
+        username,
+        email,
+        password,
+      });
       navigate("/login");
     } catch (error) {
       console.error("Register error", error);
+      if (error.response && error.response.data) {
+        console.error("Server response:", error.response.data.error);
+      }
     }
   };
 
@@ -48,7 +55,7 @@ const Register = () => {
         />
         <button
           type="submit"
-          className="w-full bg-green-500 text-white py-2 rounded"
+          className="w-full bg-black text-white py-2 rounded"
         >
           Register
         </button>
