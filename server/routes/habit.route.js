@@ -2,6 +2,7 @@ import express from "express";
 import {
   createHabit,
   updateHabit,
+  updateHabitReminder,
   getHabits,
   getHabitById,
   addNote,
@@ -14,6 +15,7 @@ const router = express.Router();
 router.post("/", authMiddleware, createHabit);
 router.post("/:id/complete", authMiddleware, updateHabit);
 router.post("/:id/notes", authMiddleware, addNote);
+router.patch("/:id/reminder", authMiddleware, updateHabitReminder);
 router.get("/", authMiddleware, getHabits);
 router.get("/categories", authMiddleware, getCategories);
 router.get("/:id", authMiddleware, getHabitById);

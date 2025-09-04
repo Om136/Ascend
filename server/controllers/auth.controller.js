@@ -53,11 +53,12 @@ export const login = async (req, res) => {
       return res.status(400).json({ error: "Invalid Credentials" });
     }
 
-    generateTokenAndSetCookie(user._id, res);
+    const token = generateTokenAndSetCookie(user._id, res);
     res.status(200).json({
       _id: user._id,
       username: user.username,
       email: user.email,
+      token: token,
     });
   } catch (error) {
     console.log(error);
@@ -66,5 +67,11 @@ export const login = async (req, res) => {
 };
 
 export const logOut = async (req, res) => {
-  res.send("Sign Up Route");
+  try {
+    res.cookie("jwt", "", { maxAge: 0 });
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Server error during logout" });
+  }
 };

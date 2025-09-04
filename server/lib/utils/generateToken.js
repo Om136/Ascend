@@ -8,4 +8,5 @@ export const generateTokenAndSetCookie = (id, res) => {
     httpOnly: true,
   });
   console.log("Cookie set");
+  return token; // Return the token so it can be sent in response body
 };

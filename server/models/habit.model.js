@@ -31,20 +31,32 @@ const habitSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  description: {
+    type: String,
+    default: "",
+  },
   category: {
     type: String,
     enum: CATEGORIES,
     default: "Other",
     required: true,
   },
-  // description:{
-  //     type:String,
-  //     required:true,
-  // },
   frequency: {
     type: String,
     required: true,
     enum: ["Daily", "Weekly", "Monthly"],
+  },
+  reminderEnabled: {
+    type: Boolean,
+    default: false,
+  },
+  reminderTime: {
+    type: String, // Store as "HH:MM" format
+    default: "09:00",
+  },
+  reminderDays: {
+    type: [Number], // 0-6 for Sunday-Saturday, used for weekly/custom reminders
+    default: [1, 2, 3, 4, 5, 6, 0], // All days by default
   },
   streak: {
     type: Number,

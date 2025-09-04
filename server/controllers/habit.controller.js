@@ -17,7 +17,15 @@ const getCategories = async (req, res) => {
 
 const createHabit = async (req, res) => {
   try {
-    const { name, frequency, category } = req.body;
+    const {
+      name,
+      description,
+      frequency,
+      category,
+      reminderEnabled,
+      reminderTime,
+      reminderDays,
+    } = req.body;
 
     // Validate required fields
     const missingFields = {
@@ -62,8 +70,12 @@ const createHabit = async (req, res) => {
 
     const newHabit = new Habit({
       name,
+      description: description || "",
       frequency,
       category: category || "Other",
+      reminderEnabled: reminderEnabled || false,
+      reminderTime: reminderTime || "09:00",
+      reminderDays: reminderDays || [1, 2, 3, 4, 5, 6, 0],
       user: req.user._id,
     });
 
@@ -90,13 +102,17 @@ const getHabits = async (req, res) => {
       habit.completed = habit.lastCompletedPeriod === currentPeriod;
     });
 
+    // Get next level information
+    const nextLevelInfo = user.getNextLevelInfo();
+
     res.status(200).json({
       habits,
       user: {
-        level: user.level,
+        level: user.calculateLevel(),
         levelTitle: user.getLevelTitle(),
         totalPoints: user.totalPoints,
         achievements: user.achievements,
+        nextLevelInfo: nextLevelInfo,
       },
     });
   } catch (error) {
@@ -128,6 +144,43 @@ const getHabitById = async (req, res) => {
     console.error("Error fetching habit:", error);
     res.status(500).json({
       message: "Failed to fetch habit",
+      details: error.message,
+    });
+  }
+};
+
+const updateHabitReminder = async (req, res) => {
+  try {
+    const { reminderEnabled, reminderTime, reminderDays } = req.body;
+
+    const habit = await Habit.findOne({
+      _id: req.params.id,
+      user: req.user._id,
+    });
+
+    if (!habit) {
+      return res.status(404).json({
+        message: "Habit not found",
+        details:
+          "The requested habit does not exist or you don't have access to it",
+      });
+    }
+
+    // Update reminder settings
+    if (reminderEnabled !== undefined) habit.reminderEnabled = reminderEnabled;
+    if (reminderTime) habit.reminderTime = reminderTime;
+    if (reminderDays) habit.reminderDays = reminderDays;
+
+    await habit.save();
+
+    res.status(200).json({
+      message: "Reminder settings updated successfully",
+      habit,
+    });
+  } catch (error) {
+    console.error("Error updating habit reminder:", error);
+    res.status(500).json({
+      message: "Failed to update habit reminder",
       details: error.message,
     });
   }
@@ -178,24 +231,94 @@ const updateHabit = async (req, res) => {
     user.totalPoints += habit.points;
     user.level = user.calculateLevel();
 
-    // Check for streak achievements
-    await user.checkAchievements("streak", habit.streak);
-    // Check for points achievements
-    await user.checkAchievements("points", user.totalPoints);
-    // Check for habits completed achievement
-    await user.checkAchievements("habits", 1);
+    // Get stats for comprehensive achievement checks
+    const userHabits = await Habit.find({ user: req.user._id });
+    const completedHabits = userHabits.filter(
+      (h) => h.completions.length > 0
+    ).length;
+    const habitCategories = [...new Set(userHabits.map((h) => h.category))];
+    const categoryCompletions = {};
+
+    // Count completions per category
+    userHabits.forEach((h) => {
+      if (h.completions.length > 0) {
+        categoryCompletions[h.category] =
+          (categoryCompletions[h.category] || 0) + h.completions.length;
+      }
+    });
+
+    // Check all types of achievements
+    const habitAchievements = await user.checkAchievements(
+      "habits",
+      completedHabits
+    );
+    const pointAchievements = await user.checkAchievements(
+      "points",
+      user.totalPoints
+    );
+    const streakAchievements = await user.checkAchievements(
+      "streak",
+      habit.streak
+    );
+    const varietyAchievements = await user.checkAchievements(
+      "variety",
+      habitCategories.length
+    );
+    const activeHabitsAchievements = await user.checkAchievements(
+      "active_habits",
+      userHabits.length,
+      null,
+      userHabits.length
+    );
+
+    // Check category achievements
+    let categoryAchievements = [];
+    for (const [category, count] of Object.entries(categoryCompletions)) {
+      const catAchievements = await user.checkAchievements(
+        "category",
+        count,
+        category
+      );
+      categoryAchievements = [...categoryAchievements, ...catAchievements];
+    }
+
+    // Check for daily habits achievement
+    const dailyHabits = userHabits.filter(
+      (h) => h.frequency === "daily"
+    ).length;
+    const dailyAchievements =
+      dailyHabits > 0
+        ? await user.checkAchievements("daily_habits", dailyHabits)
+        : [];
+
+    // Combine all new achievements for response
+    const allNewAchievements = [
+      ...habitAchievements,
+      ...pointAchievements,
+      ...streakAchievements,
+      ...varietyAchievements,
+      ...activeHabitsAchievements,
+      ...categoryAchievements,
+      ...dailyAchievements,
+    ];
 
     await Promise.all([habit.save(), user.save()]);
 
-    // Return updated habit and user info
+    // Get next level information
+    const nextLevelInfo = user.getNextLevelInfo();
+
+    // Return updated habit and user info with new achievements
     res.status(200).json({
       habit,
       user: {
-        level: user.level,
+        level: user.calculateLevel(),
         levelTitle: user.getLevelTitle(),
         totalPoints: user.totalPoints,
         achievements: user.achievements,
+        nextLevelInfo: nextLevelInfo,
       },
+      newAchievements: allNewAchievements,
+      achievementCount: allNewAchievements.length,
     });
   } catch (error) {
     console.error("Error updating habit:", error);
@@ -306,14 +429,36 @@ const calculatePoints = (streak, frequency) => {
     case "Monthly":
       basePoints = 200;
       break;
+    default:
+      basePoints = 10;
   }
-  return basePoints;
+
+  // Streak bonus system - exponential rewards for consistency
+  let streakMultiplier = 1;
+  if (streak >= 3) streakMultiplier = 1.2; // 20% bonus after 3 days
+  if (streak >= 7) streakMultiplier = 1.5; // 50% bonus after 1 week
+  if (streak >= 14) streakMultiplier = 1.8; // 80% bonus after 2 weeks
+  if (streak >= 30) streakMultiplier = 2.2; // 120% bonus after 1 month
+  if (streak >= 60) streakMultiplier = 2.8; // 180% bonus after 2 months
+  if (streak >= 100) streakMultiplier = 3.5; // 250% bonus after 100 days!
+  if (streak >= 365) streakMultiplier = 5.0; // 400% bonus for a full year!
+
+  // Special milestone bonuses
+  let milestoneBonus = 0;
+  if (streak === 7) milestoneBonus = 50; // Week milestone
+  if (streak === 30) milestoneBonus = 200; // Month milestone
+  if (streak === 60) milestoneBonus = 500; // 2-month milestone
+  if (streak === 100) milestoneBonus = 1000; // 100-day milestone
+  if (streak === 365) milestoneBonus = 5000; // Year milestone
+
+  return Math.floor(basePoints * streakMultiplier) + milestoneBonus;
 };
 
 export {
   createHabit,
   getHabits,
   updateHabit,
+  updateHabitReminder,
   getHabitById,
   addNote,
   getCategories,
