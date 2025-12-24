@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import ReminderSettings from "@/components/ReminderSettings";
 import NotificationService from "@/services/NotificationService";
-import axios from "axios";
+import { api } from "@/lib/api";
 
 export default function HabitDetails() {
   const { id } = useParams();
@@ -37,12 +37,8 @@ export default function HabitDetails() {
     const fetchData = async () => {
       try {
         const [habitResponse, categoriesResponse] = await Promise.all([
-          axios.get(`http://localhost:8000/api/habits/${id}`, {
-            withCredentials: true,
-          }),
-          axios.get("http://localhost:8000/api/habits/categories", {
-            withCredentials: true,
-          }),
+          api.get(`/habits/${id}`),
+          api.get("/habits/categories"),
         ]);
         setHabit(habitResponse.data);
         setCategories(categoriesResponse.data);
@@ -61,11 +57,9 @@ export default function HabitDetails() {
     if (!newNote.trim()) return;
 
     try {
-      const response = await axios.post(
-        `http://localhost:8000/api/habits/${id}/notes`,
-        { notes: newNote },
-        { withCredentials: true }
-      );
+      const response = await api.post(`/habits/${id}/notes`, {
+        notes: newNote,
+      });
       setHabit(response.data);
       setNewNote("");
     } catch (error) {
@@ -75,11 +69,7 @@ export default function HabitDetails() {
 
   const completeHabit = async () => {
     try {
-      const response = await axios.post(
-        `http://localhost:8000/api/habits/${id}/complete`,
-        {},
-        { withCredentials: true }
-      );
+      const response = await api.post(`/habits/${id}/complete`, {});
       setHabit(response.data.habit);
     } catch (error) {
       console.error("Error completing habit:", error);
@@ -88,11 +78,9 @@ export default function HabitDetails() {
 
   const updateCategory = async (newCategory) => {
     try {
-      const response = await axios.patch(
-        `http://localhost:8000/api/habits/${id}`,
-        { category: newCategory },
-        { withCredentials: true }
-      );
+      const response = await api.patch(`/habits/${id}`, {
+        category: newCategory,
+      });
       setHabit(response.data);
     } catch (error) {
       console.error("Error updating category:", error);
@@ -101,11 +89,7 @@ export default function HabitDetails() {
 
   const updateReminder = async (reminderSettings) => {
     try {
-      await axios.patch(
-        `http://localhost:8000/api/habits/${id}/reminder`,
-        reminderSettings,
-        { withCredentials: true }
-      );
+      await api.patch(`/habits/${id}/reminder`, reminderSettings);
       setHabit({ ...habit, ...reminderSettings });
       setShowReminderSettings(false);
 

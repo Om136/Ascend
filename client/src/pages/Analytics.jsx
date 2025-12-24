@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Trophy, BarChart3, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProgressAnalytics from "@/components/ProgressAnalytics";
-import axios from "axios";
+import { api } from "@/lib/api";
 
 export default function Analytics() {
   const navigate = useNavigate();
@@ -19,9 +19,7 @@ export default function Analytics() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/api/habits", {
-          withCredentials: true,
-        });
+        const response = await api.get("/habits");
 
         setHabits(response.data.habits);
         setUserStats(response.data.user);

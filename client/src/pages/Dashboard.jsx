@@ -27,7 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import axios from "axios";
+import { api } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
@@ -58,12 +58,8 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         const [habitsResponse, categoriesResponse] = await Promise.all([
-          axios.get("http://localhost:8000/api/habits", {
-            withCredentials: true,
-          }),
-          axios.get("http://localhost:8000/api/habits/categories", {
-            withCredentials: true,
-          }),
+          api.get("/habits"),
+          api.get("/habits/categories"),
         ]);
 
         setHabits(habitsResponse.data.habits);
@@ -101,13 +97,7 @@ export default function Dashboard() {
       };
       console.log(newHabitData);
 
-      const response = await axios.post(
-        "http://localhost:8000/api/habits",
-        newHabitData,
-        {
-          withCredentials: true,
-        }
-      );
+      const response = await api.post("/habits", newHabitData);
 
       // Update habits state with the new habit from server response
       setHabits([...habits, response.data]);
@@ -129,11 +119,7 @@ export default function Dashboard() {
 
   const completeHabit = async (id) => {
     try {
-      const response = await axios.post(
-        `http://localhost:8000/api/habits/${id}/complete`,
-        {},
-        { withCredentials: true }
-      );
+      const response = await api.post(`/habits/${id}/complete`, {});
 
       // Update habit in state
       setHabits(
@@ -183,13 +169,7 @@ export default function Dashboard() {
 
   const handleLogout = async () => {
     try {
-      await axios.post(
-        "http://localhost:8000/api/auth/logout",
-        {},
-        {
-          withCredentials: true,
-        }
-      );
+      await api.post("/auth/logout", {});
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       navigate("/login");

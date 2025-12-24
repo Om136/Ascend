@@ -1,9 +1,9 @@
 import { useState } from "react";
-import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { Trophy, UserPlus, User, Mail, Lock, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { api } from "@/lib/api";
 
 const Register = () => {
   const [username, setUsername] = useState("");
@@ -14,7 +14,7 @@ const Register = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:8000/api/auth/signup", {
+      await api.post("/auth/signup", {
         username,
         email,
         password,

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { Trophy, LogIn, User, Lock, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { api } from "@/lib/api";
 
 const Login = () => {
   const [username, setusername] = useState("");
@@ -24,16 +24,10 @@ const Login = () => {
     setError("");
 
     try {
-      const response = await axios.post(
-        "http://localhost:8000/api/auth/login",
-        {
-          username,
-          password,
-        },
-        {
-          withCredentials: true,
-        }
-      );
+      const response = await api.post("/auth/login", {
+        username,
+        password,
+      });
 
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);

@@ -331,7 +331,7 @@ const updateHabit = async (req, res) => {
 
 const addNote = async (req, res) => {
   try {
-    const { content } = req.body;
+    const content = req.body?.content ?? req.body?.notes;
     if (!content) {
       return res.status(400).json({
         message: "Missing required fields",

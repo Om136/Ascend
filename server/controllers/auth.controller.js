@@ -5,6 +5,16 @@ import { generateTokenAndSetCookie } from "../lib/utils/generateToken.js";
 export const signUp = async (req, res) => {
   try {
     const { username, email, password } = req.body;
+    if (!username || !email || !password) {
+      return res
+        .status(400)
+        .json({ error: "Username, email and password are required" });
+    }
+    if (String(password).length < 6) {
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 6 characters" });
+    }
     const existingUser = await User.findOne({ username });
     if (existingUser) {
       return res.status(400).json({ error: "User already exists" });
@@ -42,6 +52,11 @@ export const signUp = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { username, password } = req.body;
+    if (!username || !password) {
+      return res
+        .status(400)
+        .json({ error: "Username and password are required" });
+    }
     const user = await User.findOne({ username });
 
     if (!user) {
@@ -68,7 +83,13 @@ export const login = async (req, res) => {
 
 export const logOut = async (req, res) => {
   try {
-    res.cookie("jwt", "", { maxAge: 0 });
+    const isProduction = process.env.NODE_ENV === "production";
+    res.clearCookie("jwt", {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+      path: "/",
+    });
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.log(error);
