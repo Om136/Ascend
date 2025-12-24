@@ -11,7 +11,18 @@ const achievementSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ["streak", "points", "habits"],
+    enum: [
+      "streak",
+      "points",
+      "habits",
+      "category",
+      "variety",
+      "daily_habits",
+      "active_habits",
+      "perfect_week",
+      "early_completion",
+      "late_completion",
+    ],
     required: true,
   },
   threshold: {

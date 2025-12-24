@@ -225,6 +225,8 @@ const updateHabit = async (req, res) => {
     habit.lastCompleted = now;
     habit.lastCompletedPeriod = currentPeriod;
     habit.completed = true;
+    habit.completionHistory = habit.completionHistory || [];
+    habit.completionHistory.push({ completedAt: now });
 
     // Update user's total points and check achievements
     const user = await User.findById(req.user._id);
@@ -234,16 +236,17 @@ const updateHabit = async (req, res) => {
     // Get stats for comprehensive achievement checks
     const userHabits = await Habit.find({ user: req.user._id });
     const completedHabits = userHabits.filter(
-      (h) => h.completions.length > 0
+      (h) => (h.completionHistory?.length || 0) > 0
     ).length;
     const habitCategories = [...new Set(userHabits.map((h) => h.category))];
     const categoryCompletions = {};
 
     // Count completions per category
     userHabits.forEach((h) => {
-      if (h.completions.length > 0) {
+      const completionCount = h.completionHistory?.length || 0;
+      if (completionCount > 0) {
         categoryCompletions[h.category] =
-          (categoryCompletions[h.category] || 0) + h.completions.length;
+          (categoryCompletions[h.category] || 0) + completionCount;
       }
     });
 
@@ -284,7 +287,7 @@ const updateHabit = async (req, res) => {
 
     // Check for daily habits achievement
     const dailyHabits = userHabits.filter(
-      (h) => h.frequency === "daily"
+      (h) => h.frequency === "Daily"
     ).length;
     const dailyAchievements =
       dailyHabits > 0
